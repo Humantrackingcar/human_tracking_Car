@@ -70,7 +70,6 @@ int usage()
 	printf("  --width WIDTH     desired width of camera stream (default is 1280 pixels)\n");
 	printf("  --height HEIGHT   desired height of camera stream (default is 720 pixels)\n");
 	printf("  --threshold VALUE minimum threshold for detection (default is 0.5)\n\n");
-
 	printf("%s\n", detectNet::Usage());
 */
 	return 0;
@@ -228,7 +227,7 @@ int main(int argc, char** argv)
 	//while( !signal_recieved && mmmode==0 )
 	while (!signal_recieved)
 	{
-		// 5 Frame¿¡ ÇÑ ¹ø¾¿ object detection 
+		// 5 FrameÂ¿Â¡ Ã‡Ã‘ Â¹Ã¸Â¾Â¿ object detection 
 		a = 0;
 		// capture RGBA image
 		float* imgRGBA = NULL;
@@ -325,6 +324,7 @@ int main(int argc, char** argv)
 	}
 		
 			// update display
+<<<<<<< HEAD
 		if (display != NULL)
 
 		{
@@ -346,12 +346,38 @@ int main(int argc, char** argv)
 		}
 		
 
+=======
+			if (display != NULL)
+			{
+				// render the image
+				display->RenderOnce(imgRGBA, camera->GetWidth(), camera->GetHeight());
+
+				// update the status bar
+				char str[256];
+				sprintf(str, "Imagee");
+				//sprintf(str, "TensorRT %i.%i.%i | %s | Network %.0f FPS", NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR, NV_TENSORRT_PATCH, precisionTypeToStr(net->GetPrecision()), net->GetNetworkFPS());
+				display->SetTitle(str);
+
+				// check if the user quit
+				if (display->IsClosed())
+					signal_recieved = true;
+				
+				
+			}
+		}
+		CUDA(cudaNormalizeRGBA((float4*)imgRGBA, make_float2(0, 255), (float4*)imgRGBA, make_float2(0, 1), 640, 480));
+
+		CUDA(cudaDeviceSynchronize());
+>>>>>>> f684e8da026f705543cfd7623fe775fc08ef4d6c
 		cv::Mat cv_image(cv::Size(640, 480), CV_32FC4, imgRGBA);
 		//cv::Mat frame2(cv::Size(640,480), CV_8UC3);
 		cv::cvtColor(cv_image, frame, cv::COLOR_RGBA2BGR);
 		cv::imshow("Display window", frame);
 		cv::waitKey(10);
+<<<<<<< HEAD
 
+=======
+>>>>>>> f684e8da026f705543cfd7623fe775fc08ef4d6c
 		//frame=frame2.clone();
 				// print out timing info
 		net->PrintProfilerTimes();
@@ -535,16 +561,12 @@ int main(int argc, char** argv)
 				/*
 						if( !points[0].empty() )
 						{
-
 							vector<uchar> status;
 							vector<float> err;
-
 							if(prevGray.empty())
 								gray.copyTo(prevGray);
-
 							//calcOpticalFlowPyrLK(prevGray, gray, points[0], points[1], status, err, winSize, 3, termcrit, 0, 0.001);
 							size_t i, k;
-
 						}
 				*/
 
