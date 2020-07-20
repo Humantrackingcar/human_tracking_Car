@@ -24,6 +24,8 @@
 
 #include <signal.h>
 
+#define Threshold 100
+
 using namespace std;
 using namespace cv;
 
@@ -142,6 +144,7 @@ int main(int argc, char** argv)
 	int a = 0;
 	int max = -1;
 	int max_indx = -1;
+	int flag = 0;
 
 	int d_cnt = 0;
 	/*
@@ -220,6 +223,8 @@ int main(int argc, char** argv)
 	 */
 	float confidence = 0.0f;
 	int mmmode = 0;
+	int flag_cnt = 0;
+
 	//while( !signal_recieved && mmmode==0 )
 	while (!signal_recieved)
 	{
@@ -233,99 +238,119 @@ int main(int argc, char** argv)
 
 		// detect objects in the frame
 
-		if (nFrames % 5 == 0) {
 
-			detectNet::Detection* detections = NULL;
+		detectNet::Detection* detections = NULL;
 
-			const int numDetections = net->Detect(imgRGBA, camera->GetWidth(), camera->GetHeight(), &detections, overlayFlags);
-			d_cnt = 0;
+		const int numDetections = net->Detect(imgRGBA, camera->GetWidth(), camera->GetHeight(), &detections, overlayFlags);
+		d_cnt = 0;
 
-			if (numDetections > 0)
+		if (numDetections > 0)
+
+		{
+
+			printf("%i objects detected\n", numDetections);
+
+
+
+			for (int n = 0; n < numDetections; n++)
 
 			{
 
-				printf("%i objects detected\n", numDetections);
+				//printf("detected obj %i  class #%u (%s)  confidence=%f\n", n, detections[n].ClassID, net->GetClassDesc(detections[n].ClassID), detections[n].Confidence);
+
+				//printf("bounding box %i  (%f, %f)  (%f, %f)  w=%f  h=%f\n", n, detections[n].Left, detections[n].Top, detections[n].Right, detections[n].Bottom, detections[n].Width(), detections[n].Height());
 
 
 
-				for (int n = 0; n < numDetections; n++)
+				if (detections[n].ClassID == 1) {
 
-				{
+					if ((detections[n].Left + detections[n].Width() / 2 > 200 && detections[n].Left + detections[n].Width() / 2 < 500) && (detections[n].Top + detections[n].Height() / 2 > 100 && detections[n].Top + detections[n].Height() / 2 < 400)) {
 
-					//printf("detected obj %i  class #%u (%s)  confidence=%f\n", n, detections[n].ClassID, net->GetClassDesc(detections[n].ClassID), detections[n].Confidence);
-
-					//printf("bounding box %i  (%f, %f)  (%f, %f)  w=%f  h=%f\n", n, detections[n].Left, detections[n].Top, detections[n].Right, detections[n].Bottom, detections[n].Width(), detections[n].Height());
-
-
-
-					if (detections[n].ClassID == 1) {
-
-						if ((detections[n].Left + detections[n].Width() / 2 > 200 && detections[n].Left + detections[n].Width() / 2 < 500) && (detections[n].Top + detections[n].Height() / 2 > 100 && detections[n].Top + detections[n].Height() / 2 < 400)) {
-
-							area[a++] = detections[n].Width()*detections[n].Height();
-
-						}
-						d_cnt++;
-					}
-
-				}
-
-			}
-
-			if (area[0] != -1) {
-
-				for (int i = 0; i < a; i++) {
-
-					if (area[i] > max) {
-
-						max = area[i];
-
-						max_indx = i;
+						area[a++] = detections[n].Width()*detections[n].Height();
 
 					}
-
+					d_cnt++;
 				}
-				roi.x = detections[max_indx].Left + detections[max_indx].Width() / 2 - 100;
-				roi.y = detections[max_indx].Top + detections[max_indx].Height() / 3 - 125;//upper
-				//roi.y=detections[max_indx].Top+detections[max_indx].Height()/2-125;
-				roi.width = 200;
-				roi.height = 250;
-				//roi.width = detections[max_indx].Width();
-				//roi.height = detections[max_indx].Height();
-				mmmode = 1;
 
-			}
+				// 사람이 일정범위 안에 들어오면 flag = 1 만들어 줌 
+				if (nFrmaes != 0) {// 처음에 실행되지 않도록
+					if (detections[n].Left < result.x && detections[n].Right > (result.x + result.width)) // target인 경우 제외 
 
-			else {
-
-				//mmmode=0;
-
-			}
-			// update display
-			if (display != NULL)
-			{
-				// render the image
-				display->RenderOnce(imgRGBA, camera->GetWidth(), camera->GetHeight());
-
-				// update the status bar
-				char str[256];
-				sprintf(str, "Imagee");
-				//sprintf(str, "TensorRT %i.%i.%i | %s | Network %.0f FPS", NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR, NV_TENSORRT_PATCH, precisionTypeToStr(net->GetPrecision()), net->GetNetworkFPS());
-				display->SetTitle(str);
-
-				// check if the user quit
-				if (display->IsClosed())
-					signal_recieved = true;
-				CUDA(cudaNormalizeRGBA((float4*)imgRGBA, make_float2(0, 255), (float4*)imgRGBA, make_float2(0, 1), 640, 480));
-
-				CUDA(cudaDeviceSynchronize());
-				cv::Mat cv_image(cv::Size(640, 480), CV_32FC4, imgRGBA);
-				//cv::Mat frame2(cv::Size(640,480), CV_8UC3);
-				cv::cvtColor(cv_image, frame, cv::COLOR_RGBA2BGR);
-				cv::imshow("Display window", frame);
-				cv::waitKey(10);
+					else if (detections[n].Left < result.x + result.width + Threshold
+						&& detections[n].Right > result.x - Threshold) // target이 아닌경우 범위 안에 들어온다면 
+					{
+						flag = 1;
+					}
+				}
 			}
 		}
+
+		if (flag_cnt == 25) {// 25frames => 5seconds
+			flag_cnt = 0;
+			flag = 0;
+		}
+
+		if (flag == 1)
+			flag_cnt++;
+
+		if (area[0] != -1) {
+
+			for (int i = 0; i < a; i++) {
+
+				if (area[i] > max) {
+
+					max = area[i];
+
+					max_indx = i;
+
+				}
+
+			}
+			roi.x = detections[max_indx].Left + detections[max_indx].Width() / 2 - 100;
+			roi.y = detections[max_indx].Top + detections[max_indx].Height() / 3 - 125;//upper
+			//roi.y=detections[max_indx].Top+detections[max_indx].Height()/2-125;
+			roi.width = 200;
+			roi.height = 250;
+			//roi.width = detections[max_indx].Width();
+			//roi.height = detections[max_indx].Height();
+			mmmode = 1;
+
+		}
+
+		else {
+
+			//mmmode=0;
+
+		}
+	}
+		
+			// update display
+		if (display != NULL)
+
+		{
+			// render the image
+			display->RenderOnce(imgRGBA, camera->GetWidth(), camera->GetHeight());
+
+			// update the status bar
+			char str[256];
+			sprintf(str, "Imagee");
+			//sprintf(str, "TensorRT %i.%i.%i | %s | Network %.0f FPS", NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR, NV_TENSORRT_PATCH, precisionTypeToStr(net->GetPrecision()), net->GetNetworkFPS());
+			display->SetTitle(str);
+
+			// check if the user quit
+			if (display->IsClosed())
+				signal_recieved = true;
+			CUDA(cudaNormalizeRGBA((float4*)imgRGBA, make_float2(0, 255), (float4*)imgRGBA, make_float2(0, 1), 640, 480));
+
+			CUDA(cudaDeviceSynchronize());
+		}
+		
+
+		cv::Mat cv_image(cv::Size(640, 480), CV_32FC4, imgRGBA);
+		//cv::Mat frame2(cv::Size(640,480), CV_8UC3);
+		cv::cvtColor(cv_image, frame, cv::COLOR_RGBA2BGR);
+		cv::imshow("Display window", frame);
+		cv::waitKey(10);
 
 		//frame=frame2.clone();
 				// print out timing info
@@ -389,12 +414,18 @@ int main(int argc, char** argv)
 
 			else {
 				cout << d_cnt << endl;
-				if (d_cnt == 1) {
+				if (d_cnt == 1 && flag == 0) { // detect된 사람이 한 명이고 flag가 0일 때
 					int r_result_x = result.x;
 					int r_result_y = result.y;
 					result = tracker.update(frame);
 					rectangle(frame, Point(result.x, result.y), Point(result.x + result.width, result.y + result.height), Scalar(0, 255, 255), 2, 8);
 					cout << "one person" << endl;
+
+					// rect가 위쪽 끝, 아래쪽 끝에 갔을때 멈춤 
+					if (result.y <= 0 && result.y >= 480) {
+						write(serial_port, "s", 1);
+						cout << " stop     ";
+					}
 
 					if (result.y + result.height / 2 > 300 && mode_y != 1) {
 						write(serial_port, "x", 1);
@@ -437,13 +468,19 @@ int main(int argc, char** argv)
 					}
 
 				}
-				else if (d_cnt > 1) {
+				else  { // detect된 사람이 여러명이거나 flag가 1일 때 
 					if ((max_index == 0) || (max_index > 4 && max_index < 14) || (max_index > 22 && max_index < 32)) {
 						int r_result_x = result.x;
 						int r_result_y = result.y;
 						result = tracker.update(frame);
 						rectangle(frame, Point(result.x, result.y), Point(result.x + result.width, result.y + result.height), Scalar(0, 255, 255), 2, 8);
 						cout << "many people" << endl;
+					}
+
+					// rect가 위쪽 끝, 아래쪽 끝에 갔을때 멈춤 
+					if (result.y <= 0 && result.y >= 480) {
+						write(serial_port, "s", 1);
+						cout << " stop     ";
 					}
 
 					if (result.y + result.height / 2 > 300 && mode_y != 1) {
