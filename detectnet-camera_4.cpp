@@ -143,7 +143,7 @@ int main(int argc, char** argv)
 	int a = 0;
 	int max = -1;
 	int max_indx = -1;
-	int flag = 0;
+	int flag = 0, flag_cnt = 0;
 
 	int d_cnt = 0;
 	/*
@@ -222,7 +222,6 @@ int main(int argc, char** argv)
 	 */
 	float confidence = 0.0f;
 	int mmmode = 0;
-	int flag_cnt = 0;
 
 	//while( !signal_recieved && mmmode==0 )
 	while (!signal_recieved)
@@ -273,7 +272,7 @@ int main(int argc, char** argv)
 
 				// 사람이 일정범위 안에 들어오면 flag = 1 만들어 줌 
 				if (nFrmaes != 0) {// 처음에 실행되지 않도록
-					if (detections[n].Left < result.x && detections[n].Right > (result.x + result.width)) // target인 경우 제외 
+					if (detections[n].Left < result.x && detections[n].Right >(result.x + result.width)) // target인 경우 제외 
 
 					else if (detections[n].Left < result.x + result.width + Threshold
 						&& detections[n].Right > result.x - Threshold) // target이 아닌경우 범위 안에 들어온다면 
@@ -321,12 +320,11 @@ int main(int argc, char** argv)
 			//mmmode=0;
 
 		}
-	}
-		
-			// update display
-<<<<<<< HEAD
-		if (display != NULL)
 
+
+		// update display
+
+		if (display != NULL)
 		{
 			// render the image
 			display->RenderOnce(imgRGBA, camera->GetWidth(), camera->GetHeight());
@@ -340,44 +338,19 @@ int main(int argc, char** argv)
 			// check if the user quit
 			if (display->IsClosed())
 				signal_recieved = true;
-			CUDA(cudaNormalizeRGBA((float4*)imgRGBA, make_float2(0, 255), (float4*)imgRGBA, make_float2(0, 1), 640, 480));
 
-			CUDA(cudaDeviceSynchronize());
+
 		}
+	
 		
-
-=======
-			if (display != NULL)
-			{
-				// render the image
-				display->RenderOnce(imgRGBA, camera->GetWidth(), camera->GetHeight());
-
-				// update the status bar
-				char str[256];
-				sprintf(str, "Imagee");
-				//sprintf(str, "TensorRT %i.%i.%i | %s | Network %.0f FPS", NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR, NV_TENSORRT_PATCH, precisionTypeToStr(net->GetPrecision()), net->GetNetworkFPS());
-				display->SetTitle(str);
-
-				// check if the user quit
-				if (display->IsClosed())
-					signal_recieved = true;
-				
-				
-			}
-		}
 		CUDA(cudaNormalizeRGBA((float4*)imgRGBA, make_float2(0, 255), (float4*)imgRGBA, make_float2(0, 1), 640, 480));
 
 		CUDA(cudaDeviceSynchronize());
->>>>>>> f684e8da026f705543cfd7623fe775fc08ef4d6c
 		cv::Mat cv_image(cv::Size(640, 480), CV_32FC4, imgRGBA);
 		//cv::Mat frame2(cv::Size(640,480), CV_8UC3);
 		cv::cvtColor(cv_image, frame, cv::COLOR_RGBA2BGR);
 		cv::imshow("Display window", frame);
 		cv::waitKey(10);
-<<<<<<< HEAD
-
-=======
->>>>>>> f684e8da026f705543cfd7623fe775fc08ef4d6c
 		//frame=frame2.clone();
 				// print out timing info
 		net->PrintProfilerTimes();
