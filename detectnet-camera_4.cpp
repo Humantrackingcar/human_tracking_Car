@@ -226,6 +226,7 @@ int main(int argc, char** argv)
 	//while( !signal_recieved && mmmode==0 )
 	while (!signal_recieved)
 	{
+		double st=static_cast<double>(getTickCount());
 		// 5 FrameÂ¿Â¡ Ã‡Ã‘ Â¹Ã¸Â¾Â¿ object detection 
 		a = 0;
 		// capture RGBA image
@@ -270,15 +271,18 @@ int main(int argc, char** argv)
 					d_cnt++;
 				}
 
-				// »ç¶÷ÀÌ ÀÏÁ¤¹üÀ§ ¾È¿¡ µé¾î¿À¸é flag = 1 ¸¸µé¾î ÁÜ 
-				if (nFrmaes != 0) {// Ã³À½¿¡ ½ÇÇàµÇÁö ¾Êµµ·Ï
-					if (detections[n].Left < result.x && detections[n].Right >(result.x + result.width)) // targetÀÎ °æ¿ì Á¦¿Ü 
+					// \BB\E7\B6\F7\C0\CC \C0\CF\C1\A4\B9\FC\C0\A7 \BEÈ¿\A1 \B5\E9\BE\EE\BF\C0\B8\E9 flag = 1 \B8\B8\B5\E9\BE\EE \C1\DC 
+				if (nFrames != 0) {// Ã³\C0\BD\BF\A1 \BD\C7\C7\E0\B5\C7\C1\F6 \BEÊµ\B5\B7\CF
 
-					else if (detections[n].Left < result.x + result.width + Threshold
-						&& detections[n].Right > result.x - Threshold) // targetÀÌ ¾Æ´Ñ°æ¿ì ¹üÀ§ ¾È¿¡ µé¾î¿Â´Ù¸é 
+					if (detections[n].Left < result.x && detections[n].Right >(result.x + result.width)){} // target\C0\CE \B0\E6\BF\EC \C1\A6\BF\DC
+						
+					else if(detections[n].Left < result.x + result.width + Threshold
+						&& detections[n].Right > result.x - Threshold) // target\C0\CC \BEÆ´Ñ°\E6\BF\EC \B9\FC\C0\A7 \BEÈ¿\A1 \B5\E9\BE\EE\BFÂ´Ù¸\E9 
 					{
+						
 						flag = 1;
 					}
+		
 				}
 			}
 		}
@@ -323,7 +327,7 @@ int main(int argc, char** argv)
 
 
 		// update display
-
+/*
 		if (display != NULL)
 		{
 			// render the image
@@ -341,7 +345,7 @@ int main(int argc, char** argv)
 
 
 		}
-	
+*/
 		
 		CUDA(cudaNormalizeRGBA((float4*)imgRGBA, make_float2(0, 255), (float4*)imgRGBA, make_float2(0, 1), 640, 480));
 
@@ -350,6 +354,7 @@ int main(int argc, char** argv)
 		//cv::Mat frame2(cv::Size(640,480), CV_8UC3);
 		cv::cvtColor(cv_image, frame, cv::COLOR_RGBA2BGR);
 		cv::imshow("Display window", frame);
+rectangle(frame, Point(result.x - Threshold, result.y), Point(result.x + result.width + Threshold, result.y + result.height), Scalar(255, 255, 255), 2, 8);
 		cv::waitKey(10);
 		//frame=frame2.clone();
 				// print out timing info
@@ -404,7 +409,7 @@ int main(int argc, char** argv)
 				}
 
 				tracker.init(roi, frame);
-				rectangle(frame, Point(roi.x, roi.y), Point(roi.x + roi.width, roi.y + roi.height), Scalar(0, 0, 255), 2);
+				rectangle(frame, Point(roi.x, roi.y), Point(roi.x + roi.width, roi.y + roi.height), Scalar(0, 0, 255), 2);//R
 				write(serial_port, "t", 1);
 				cout << "t" << endl;
 				cout << "x: " << roi.x << "~" << roi.x + roi.width << endl;
@@ -413,17 +418,18 @@ int main(int argc, char** argv)
 
 			else {
 				cout << d_cnt << endl;
-				if (d_cnt == 1 && flag == 0) { // detectµÈ »ç¶÷ÀÌ ÇÑ ¸íÀÌ°í flag°¡ 0ÀÏ ¶§
+				if (flag == 0) {
+				//if (d_cnt == 1 && flag == 0) { // detect\B5\C8 \BB\E7\B6\F7\C0\CC \C7\D1 \B8\ED\C0Ì°\ED flag\B0\A1 0\C0\CF \B6\A7
 					int r_result_x = result.x;
 					int r_result_y = result.y;
 					result = tracker.update(frame);
-					rectangle(frame, Point(result.x, result.y), Point(result.x + result.width, result.y + result.height), Scalar(0, 255, 255), 2, 8);
+					rectangle(frame, Point(result.x, result.y), Point(result.x + result.width, result.y + result.height), Scalar(255, 0, 0), 2, 8);//B
 					cout << "one person" << endl;
 
-					// rect°¡ À§ÂÊ ³¡, ¾Æ·¡ÂÊ ³¡¿¡ °¬À»¶§ ¸ØÃã 
-					if (result.y <= 0 && result.y >= 480) {
+					// rect\B0\A1 \C0\A7\C2\CA \B3\A1, \BEÆ·\A1\C2\CA \B3\A1\BF\A1 \B0\AC\C0\BB\B6\A7 \B8\D8\C3\E3 
+					if (result.y <= 0 || result.y >= 480) {
 						write(serial_port, "s", 1);
-						cout << " stop     ";
+						cout << " stop     "<<endl;
 					}
 
 					if (result.y + result.height / 2 > 300 && mode_y != 1) {
@@ -467,17 +473,17 @@ int main(int argc, char** argv)
 					}
 
 				}
-				else  { // detectµÈ »ç¶÷ÀÌ ¿©·¯¸íÀÌ°Å³ª flag°¡ 1ÀÏ ¶§ 
+				else if(flag==1)  { // detect\B5\C8 \BB\E7\B6\F7\C0\CC \BF\A9\B7\AF\B8\ED\C0Ì°Å³\AA flag\B0\A1 1\C0\CF \B6\A7 
 					if ((max_index == 0) || (max_index > 4 && max_index < 14) || (max_index > 22 && max_index < 32)) {
 						int r_result_x = result.x;
 						int r_result_y = result.y;
 						result = tracker.update(frame);
-						rectangle(frame, Point(result.x, result.y), Point(result.x + result.width, result.y + result.height), Scalar(0, 255, 255), 2, 8);
+						rectangle(frame, Point(result.x, result.y), Point(result.x + result.width, result.y + result.height), Scalar(0, 255, 0), 2, 8);//G
 						cout << "many people" << endl;
 					}
 
-					// rect°¡ À§ÂÊ ³¡, ¾Æ·¡ÂÊ ³¡¿¡ °¬À»¶§ ¸ØÃã 
-					if (result.y <= 0 && result.y >= 480) {
+					// rect\B0\A1 \C0\A7\C2\CA \B3\A1, \BEÆ·\A1\C2\CA \B3\A1\BF\A1 \B0\AC\C0\BB\B6\A7 \B8\D8\C3\E3 
+					if (result.y <= 0 || result.y >= 480) {
 						write(serial_port, "s", 1);
 						cout << " stop     ";
 					}
@@ -618,9 +624,12 @@ int main(int argc, char** argv)
 				imshow("Image", frame);
 				waitKey(100);
 			}
+
 			printf("one\n");
 		}
-
+		double end=static_cast<double>(getTickCount()); //ì¸¡ì • ì™„ë£Œ ì‹œê°„
+		double fps=1000/(end-st)/getTickFrequency(); // fps ê³„ì‚°
+		cout<<"fps : "<<fps<<endl;
 	}
 
 	close(serial_port);
