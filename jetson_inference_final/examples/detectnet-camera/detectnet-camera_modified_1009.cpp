@@ -243,39 +243,14 @@ int main(int argc, char** argv)
 	}
 
 	printf("detectnet-camera:  camera open for streaming\n");
-    
-    // 영상을 저장할 부분
-    
-    
+
+
 	/*
 	 * processing loop
 	 */
 	float confidence = 0.0f;
 	int mmmode = 0;
-    
-    VideoCapture cap(0);
-    
-    if(!cap.isOpened()) {
-        cout << "영상 저장 비디오를 열 수 없습니다." << endl;
-        return 0;
-    }
-    
-    Size size = Size((int)cap.get(CAP_PROP_FRAME_WIDTH), (int)cap.get(CAP_PROP_FRAME_HEIGHT));
-    
-    // XVID는 코덱 이름, 다른 코덱으로 변경
-    //'M','J','P','G'
-    int fourcc = VideoWriter::fourcc('x','v','i','d');
-    
-    
-    VideoWriter outputVideo("out.avi", fourcc, 30, size, true);
-    
-    if(!outputVideo.isOpened()) {
-        cout << "영상을 저장할 비디오를 열 수 없습니다." << endl;
-        return 0;
-    }
-    
-   //VideoWriter *writer = CreateVideoWriter("out.avi", CV_FOURCC('x','v','i','d'), 30, size)
-    
+
 	//while( !signal_recieved && mmmode==0 )
 	while (!signal_recieved)
 	{
@@ -295,12 +270,6 @@ int main(int argc, char** argv)
 
 		const int numDetections = net->Detect(imgRGBA, camera->GetWidth(), camera->GetHeight(), &detections, overlayFlags);
 		d_cnt = 0;
-        
-        
-        
-        
-        
-        
 
 		if (numDetections > 0)
 
@@ -453,32 +422,33 @@ rectangle(frame, Point(result.x - Threshold, result.y), Point(result.x + result.
 					int r_result_x = result.x;
 					int r_result_y = result.y;
 					result = tracker.update(frame);
-					rectangle(frame, Point(result.x, result.y), Point(result.x + result.width, result.y + result.height), Scalar(255, 0, 0), 2, 8);//B
+					//rectangle(frame, Point(result.x, result.y), Point(result.x + result.width, result.y + result.height), Scalar(255, 0, 0), 2, 8);//B
+                    rectnagle(frmae, Point(result.x + result.width / 2 - 80, result.y + result.height / 2 - 100), Point(result.x + result.width / 2 + 80, result.y +. result.height / 2 + 100), Scalar(255, 0 , 0), 2, 8);
 					//cout << "one person" << endl;
 
 					// rect\B0\A1 \C0\A7\C2\CA \B3\A1, \BEƷ\A1\C2\CA \B3\A1\BF\A1 \B0\AC\C0\BB\B6\A7 \B8\D8\C3\E3 
 					if ((result.y <= 0 || result.y >= 480) && mode_y != 4) {
 						write(serial_port, "s", 1);
 						tcdrain(serial_port);
-						cout << "stop "<<endl;
+                        cout << "stop(person out of frame" << endl;
 						mode_y = 4;
 					}
 					else if (result.y + result.height / 2 > 300 && mode_y != 1) {
 						write(serial_port, "x", 1);
 						tcdrain(serial_port);
-						cout << " x   ";
+                        cout << "x : fast speed" << endl;
 						mode_y = 1;
 					}
 					else if (result.y > 0 && result.y + result.height / 2 < 100 && mode_y != 2) {
 						write(serial_port, "z", 1);
 						tcdrain(serial_port);
-						cout << " z   " << endl;
+                        cout << "z : slow speed" << endl;
 						mode_y = 2;
 					}
 					else if ((result.y + result.height / 2 >= 200) && (result.y + result.height / 2 <= 300) && (mode_y != 3)) {
 						write(serial_port, "y", 1);
 						tcdrain(serial_port);
-						cout << " y   " << endl;
+                        cout << "y : middle speed" << endl;
 						mode_y = 3;
 					}
 
@@ -536,7 +506,6 @@ rectangle(frame, Point(result.x - Threshold, result.y), Point(result.x + result.
 
 					else if (result.y + result.height / 2 > 300 && mode_y != 1) {
 						write(serial_port, "x", 1);
-
 						tcdrain(serial_port);
 						//cout << " x   ";
 						mode_y = 1;
@@ -555,6 +524,7 @@ rectangle(frame, Point(result.x - Threshold, result.y), Point(result.x + result.
 					}
 
 					//cout<<frame.cols/2-(result.x+result.width/2) << endl;
+                    if(mode_y != 4) {
 					if ((frame.cols / 2 - (result.x + result.width / 2) > 150)&& mode != 1) {
 						write(serial_port, "a", 1);
 						tcdrain(serial_port);
@@ -585,6 +555,7 @@ rectangle(frame, Point(result.x - Threshold, result.y), Point(result.x + result.
 						//cout << " c" << endl;
 						mode = 5;
 					}
+                    }
 
 				}
 
@@ -681,21 +652,16 @@ rectangle(frame, Point(result.x - Threshold, result.y), Point(result.x + result.
 
 			if (!SILENT) {
 				imshow("Image", frame);
-                
-                outputVideo << frame; // 저장하는 명령어
-                // cvWriteFrame(writer, frame)
-                
 				waitKey(100);
 			}
 
-			//printf("one\n");
+			// printf("one\n");
 		}
-	//	double end=static_cast<double>(getTickCount()); //측정 완료 시간
-	//	double fps=1000/(end-st)/getTickFrequency(); // fps 계산
-	//	cout<<"fps : "<<fps<<endl;
+		double end=static_cast<double>(getTickCount()); //측정 완료 시간
+		double fps=1000/(end-st)/getTickFrequency(); // fps 계산
+		cout<<"fps : "<<fps<<endl;
 	}
 
-    // ReleaseVideoWriter(&writer)
 	close(serial_port);
 	printf("detectnet-camera:  shutting down...\n");
 
